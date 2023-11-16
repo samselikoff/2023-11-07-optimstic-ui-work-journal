@@ -11,7 +11,7 @@ export default function EntryForm({
     type: string;
   };
 }) {
-  let fetcher = useFetcher({ key: "entry-form" });
+  let fetcher = useFetcher();
   let textareaRef = useRef<HTMLTextAreaElement>(null);
 
   let hasSubmitted = fetcher.data !== undefined && fetcher.state === "idle";
