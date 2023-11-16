@@ -2,7 +2,7 @@ import {
   type ActionFunctionArgs,
   type LoaderFunctionArgs,
 } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
+import { Link, useFetchers, useLoaderData } from "@remix-run/react";
 import { format, parseISO, startOfWeek } from "date-fns";
 import EntryForm from "~/components/entry-form";
 import prisma from "~/prisma.server";
@@ -40,6 +40,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   let session = await getSession(request.headers.get("cookie"));
 
   let entries = await prisma.entry.findMany({ orderBy: { date: "desc" } });
@@ -55,6 +56,36 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function Index() {
   let { session, entries } = useLoaderData<typeof loader>();
+
+  let fetchers = useFetchers();
+
+  let optimisticEntries = fetchers
+    .map((f) => {
+      if (f.formData) {
+        let data = Object.fromEntries(f.formData);
+        return { ...data, id: f.key };
+      }
+    })
+    .filter(Boolean);
+
+  // console.log(fetchers);
+
+  entries = [...entries, ...optimisticEntries];
+
+  // let optimisticEntries = fetchers.reduce<Entry[]>((memo, f) => {
+  //   if (f.formData) {
+  //     let data = Object.fromEntries(f.formData);
+
+  //     memo.push(data);
+  //     // // race condition: only include pending todos that haven't already been revalidated by earlier fetchers
+  //     // if (typeof id === "string" && !todos.map((t) => t.id).includes(id)) {
+  //     //   memo.push({ id });
+  //     // }
+  //   }
+
+  //   return memo;
+  // }, []);
+  console.log(optimisticEntries);
 
   let entriesByWeek = entries.reduce<Record<string, typeof entries>>(
     (memo, entry) => {
