@@ -2,7 +2,7 @@ import {
   type ActionFunctionArgs,
   type LoaderFunctionArgs,
 } from "@remix-run/node";
-import { Link, useFetcher, useFetchers, useLoaderData } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
 import { format, parseISO, startOfWeek } from "date-fns";
 import EntryForm from "~/components/entry-form";
 import prisma from "~/prisma.server";
@@ -55,18 +55,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function Index() {
   let { session, entries } = useLoaderData<typeof loader>();
-
-  // console.log(entries);
-  let fetchers = useFetchers();
-  console.log(fetchers);
-
-  // let fetcher = useFetcher({ key: "entry-form" });
-
-  // if (fetcher.formData) {
-  //   let optimisticData = Object.fromEntries(fetcher.formData);
-  //   console.log(optimisticData);
-  //   entries = [...entries, { ...optimisticData, id: "test" }];
-  // }
 
   let entriesByWeek = entries.reduce<Record<string, typeof entries>>(
     (memo, entry) => {

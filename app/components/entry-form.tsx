@@ -27,7 +27,7 @@ export default function EntryForm({
     <fetcher.Form method="post" className="mt-4">
       <fieldset
         className="disabled:opacity-70"
-        // disabled={fetcher.state !== "idle"}
+        disabled={fetcher.state !== "idle"}
       >
         <div className="lg:flex lg:items-center lg:justify-between">
           <div className="lg:order-2">
