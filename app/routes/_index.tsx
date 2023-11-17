@@ -24,19 +24,11 @@ export async function action({ request }: ActionFunctionArgs) {
   let formData = await request.formData();
   let { date, type, text } = validate(Object.fromEntries(formData));
 
-  if (
-    typeof date !== "string" ||
-    typeof type !== "string" ||
-    typeof text !== "string"
-  ) {
-    throw new Error("Bad request");
-  }
-
   return prisma.entry.create({
     data: {
       date: new Date(date),
-      type: type,
-      text: text,
+      type,
+      text,
     },
   });
 }
