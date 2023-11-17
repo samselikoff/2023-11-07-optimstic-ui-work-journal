@@ -8,7 +8,7 @@ import EntryForm from "~/components/entry-form";
 import prisma from "~/prisma.server";
 import { getSession } from "~/session";
 
-const DELAY = 1000;
+const DELAY = 500;
 
 export async function action({ request }: ActionFunctionArgs) {
   await new Promise((resolve) => setTimeout(resolve, DELAY));
