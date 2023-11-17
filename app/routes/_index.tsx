@@ -8,7 +8,11 @@ import EntryForm from "~/components/entry-form";
 import prisma from "~/prisma.server";
 import { getSession } from "~/session";
 
+const DELAY = 1000;
+
 export async function action({ request }: ActionFunctionArgs) {
+  await new Promise((resolve) => setTimeout(resolve, DELAY));
+
   let session = await getSession(request.headers.get("cookie"));
   if (!session.data.isAdmin) {
     throw new Response("Not authenticated", {
@@ -18,9 +22,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   let formData = await request.formData();
-  let { date, type, text } = Object.fromEntries(formData);
-
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  let { date, type, text } = validate(Object.fromEntries(formData));
 
   if (
     typeof date !== "string" ||
@@ -40,6 +42,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  await new Promise((resolve) => setTimeout(resolve, DELAY));
   let session = await getSession(request.headers.get("cookie"));
 
   let entries = await prisma.entry.findMany({ orderBy: { date: "desc" } });
@@ -56,8 +59,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function Index() {
   let { session, entries } = useLoaderData<typeof loader>();
 
-  let entriesByWeek = entries.reduce<Record<string, typeof entries>>(
-    (memo, entry) => {
+  let entriesByWeek = entries
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .reduce<Record<string, typeof entries>>((memo, entry) => {
       let sunday = startOfWeek(parseISO(entry.date));
       let sundayString = format(sunday, "yyyy-MM-dd");
 
@@ -65,9 +69,7 @@ export default function Index() {
       memo[sundayString].push(entry);
 
       return memo;
-    },
-    {}
-  );
+    }, {});
 
   let weeks = Object.keys(entriesByWeek).map((dateString) => ({
     dateString,
@@ -151,4 +153,18 @@ function EntryListItem({ entry }: { entry: Entry }) {
       )}
     </li>
   );
+}
+
+function validate(data: Record<string, any>) {
+  let { date, type, text } = data;
+
+  if (
+    typeof date !== "string" ||
+    typeof type !== "string" ||
+    typeof text !== "string"
+  ) {
+    throw new Error("Bad data");
+  }
+
+  return { date, type, text };
 }

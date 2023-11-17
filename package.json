@@ -8,6 +8,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@heroicons/react": "^2.0.18",
     "@prisma/client": "^4.16.2",
     "@remix-run/node": "^2.2.0",
     "@remix-run/react": "^2.2.0",
