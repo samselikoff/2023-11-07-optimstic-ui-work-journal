@@ -51,7 +51,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   let { _action, date, type, text } = Object.fromEntries(formData);
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   if (_action === "delete") {
     await prisma.entry.delete({
