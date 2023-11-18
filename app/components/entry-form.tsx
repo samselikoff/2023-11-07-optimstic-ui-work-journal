@@ -1,6 +1,6 @@
-import { useFetcher } from "@remix-run/react";
+import { Form, useSubmit } from "@remix-run/react";
 import { format } from "date-fns";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 export default function EntryForm({
   entry,
@@ -11,24 +11,30 @@ export default function EntryForm({
     type: string;
   };
 }) {
-  let fetcher = useFetcher();
   let textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  let hasSubmitted = fetcher.data !== undefined && fetcher.state === "idle";
-
-  useEffect(() => {
-    if (textareaRef.current && hasSubmitted) {
-      textareaRef.current.value = "";
-      textareaRef.current.focus();
-    }
-  }, [hasSubmitted]);
+  let submit = useSubmit();
 
   return (
-    <fetcher.Form method="post" className="mt-4">
-      <fieldset
-        className="disabled:opacity-70"
-        disabled={fetcher.state !== "idle"}
-      >
+    <Form
+      onSubmit={(e) => {
+        e.preventDefault();
+        let formData = new FormData(e.currentTarget);
+        let data = validate(Object.fromEntries(formData));
+
+        submit(
+          { ...data, id: window.crypto.randomUUID() },
+          { navigate: false, method: "post" }
+        );
+
+        if (textareaRef.current) {
+          textareaRef.current.value = "";
+          textareaRef.current.focus();
+        }
+      }}
+      method="post"
+      className="mt-4"
+    >
+      <fieldset>
         <div className="lg:flex lg:items-center lg:justify-between">
           <div className="lg:order-2">
             <input
@@ -71,6 +77,14 @@ export default function EntryForm({
             required
             rows={3}
             defaultValue={entry?.text}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.form?.dispatchEvent(
+                  new Event("submit", { bubbles: true, cancelable: true })
+                );
+              }
+            }}
           />
         </div>
 
@@ -79,10 +93,24 @@ export default function EntryForm({
             type="submit"
             className="w-full rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-600 focus:ring-offset-2 focus:ring-offset-gray-900 lg:w-auto lg:py-1.5"
           >
-            {fetcher.state !== "idle" ? "Saving..." : "Save"}
+            Save
           </button>
         </div>
       </fieldset>
-    </fetcher.Form>
+    </Form>
   );
+}
+
+function validate(data: Record<string, any>) {
+  let { date, type, text } = data;
+
+  if (
+    typeof date !== "string" ||
+    typeof type !== "string" ||
+    typeof text !== "string"
+  ) {
+    throw new Error("Bad data");
+  }
+
+  return { date, type, text };
 }

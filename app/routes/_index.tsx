@@ -2,13 +2,14 @@ import {
   type ActionFunctionArgs,
   type LoaderFunctionArgs,
 } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
+import { Link, useFetchers, useLoaderData } from "@remix-run/react";
 import { format, parseISO, startOfWeek } from "date-fns";
 import EntryForm from "~/components/entry-form";
 import prisma from "~/prisma.server";
 import { getSession } from "~/session";
+import { CloudIcon } from "@heroicons/react/20/solid";
 
-const DELAY = 500;
+const DELAY = 5000;
 
 export async function action({ request }: ActionFunctionArgs) {
   await new Promise((resolve) => setTimeout(resolve, DELAY));
@@ -22,10 +23,11 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   let formData = await request.formData();
-  let { date, type, text } = validate(Object.fromEntries(formData));
+  let { date, type, text, id } = validate(Object.fromEntries(formData));
 
   return prisma.entry.create({
     data: {
+      id,
       date: new Date(date),
       type,
       text,
@@ -50,6 +52,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function Index() {
   let { session, entries } = useLoaderData<typeof loader>();
+
+  let fetchers = useFetchers();
+  let optimisticEntries = fetchers.reduce<Entry[]>((memo, f) => {
+    if (f.formData) {
+      let data = validate(Object.fromEntries(f.formData));
+
+      if (!entries.map((e) => e.id).includes(data.id)) {
+        memo.push(data);
+      }
+    }
+
+    return memo;
+  }, []);
+
+  entries = [...entries, ...optimisticEntries];
 
   let entriesByWeek = entries
     .sort((a, b) => b.date.localeCompare(a.date))
@@ -78,9 +95,15 @@ export default function Index() {
     <div>
       {session.isAdmin && (
         <div className="mb-8 rounded-lg border border-gray-700/30 bg-gray-800/50 p-4 lg:mb-20 lg:p-6">
-          <p className="text-sm font-medium text-gray-500 lg:text-base">
-            New entry
-          </p>
+          <div className="inline-center flex justify-between">
+            <p className="text-sm font-medium text-gray-500 lg:text-base">
+              New entry
+            </p>
+
+            {optimisticEntries.length > 0 && (
+              <CloudIcon className="h-4 w-4 text-gray-500" />
+            )}
+          </div>
 
           <EntryForm />
         </div>
@@ -148,9 +171,10 @@ function EntryListItem({ entry }: { entry: Entry }) {
 }
 
 function validate(data: Record<string, any>) {
-  let { date, type, text } = data;
+  let { date, type, text, id } = data;
 
   if (
+    typeof id !== "string" ||
     typeof date !== "string" ||
     typeof type !== "string" ||
     typeof text !== "string"
@@ -158,5 +182,5 @@ function validate(data: Record<string, any>) {
     throw new Error("Bad data");
   }
 
-  return { date, type, text };
+  return { date, type, text, id };
 }

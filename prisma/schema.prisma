@@ -11,7 +11,7 @@ datasource db {
 }
 
 model Entry {
-  id   Int      @id @default(autoincrement())
+  id   String   @id @default(uuid())
   date DateTime
   type String
   text String
